@@ -78,9 +78,9 @@ class Handler:
         try:
             msg = self.fmt % record.asdict()
             try:
-                self.stream.write(msg)
+                self.write(msg, self.stream)
             except UnicodeError:
-                self.stream.write(msg.encode("UTF-8"))
+                self.write(msg.encode("UTF-8"), self.stream)
             self.flush()
         except:
             self.handleError(record)
@@ -89,6 +89,19 @@ class Handler:
         ei = sys.exc_info()
         traceback.print_exception(ei[0], ei[1], ei[2], None, sys.stderr)
         del ei
+
+    def write(self, msg, stream):
+        written = 0
+        pos = stream.tell()
+        while 1:
+            try:
+                stream.write(msg[written:])
+                break
+            except IOError as e:
+                if e.errno == errno.EINTR:
+                    written = stream.tell() - pos
+                else:
+                    raise
 
 class FileHandler(Handler):
     """File handler which supports reopening of logs.
